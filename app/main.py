@@ -12,12 +12,12 @@ def create_app() -> FastAPI:
 
     # Configure CORS for frontend integration
     app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    CORSMiddleware,
+    allow_origins=["http://localhost:4200"], # Specific URL required for credentials
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
     # Register API routes
     app.include_router(v1_router, prefix="/api/v1")
