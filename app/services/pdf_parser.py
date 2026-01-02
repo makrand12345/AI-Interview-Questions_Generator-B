@@ -1,26 +1,16 @@
-import fitz  # PyMuPDF
-import logging
-
-logger = logging.getLogger(__name__)
+from pypdf import PdfReader
+import io
 
 class PDFParser:
-    """
-    Service for extracting text from PDF files with error handling.
-    """
-    @staticmethod
-    def extract_text(file_bytes: bytes) -> str:
-        extracted_text = ""
+    def extract_text(self, pdf_content: bytes) -> str:
         try:
-            # Open PDF from memory stream
-            with fitz.open(stream=file_bytes, filetype="pdf") as doc:
-                for page in doc:
-                    extracted_text += page.get_text()
-            
-            # Clean up whitespace and return
-            return extracted_text.strip()
+            # Create a file-like object from the bytes
+            reader = PdfReader(io.BytesIO(pdf_content))
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+            return text.strip()
         except Exception as e:
-            logger.error(f"Failed to extract PDF text: {str(e)}")
-            # Return empty string to allow logic to proceed without resume
-            return ""
+            return f"Error parsing PDF: {str(e)}"
 
 pdf_parser = PDFParser()

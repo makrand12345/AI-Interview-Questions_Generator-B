@@ -2,18 +2,16 @@ services:
   - type: web
     name: ai-interview-backend
     runtime: python
-    region: oregon # Or your preferred region
-    plan: free     # Use 'starter' if you want it to never sleep
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.2
       - key: MONGODB_URL
-        sync: false # You will paste this value in the Render Dashboard
+        sync: false
       - key: HF_API_KEY
         sync: false
       - key: JWT_SECRET
         sync: false
       - key: HF_MODEL_URL
         value: https://router.huggingface.co/v1/chat/completions
-      - key: PYTHON_VERSION
-        value: 3.10.0
