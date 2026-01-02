@@ -13,7 +13,7 @@ def create_app() -> FastAPI:
     # Configure CORS for frontend integration
     app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"], # Specific URL required for credentials
+    allow_origins=["http://localhost:4200", "https://ai-interview-questions-generator-six.vercel.app"], # Specific URL required for credentials
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
