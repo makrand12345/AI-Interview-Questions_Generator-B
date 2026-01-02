@@ -6,7 +6,9 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
-        value: 3.12.8  # Use 3.12 for maximum library compatibility
+        value: 3.12.8
+      - key: RENDER_PYTHON_VERSION
+        value: 3.12.8
       - key: MONGODB_URL
         sync: false
       - key: HF_API_KEY
