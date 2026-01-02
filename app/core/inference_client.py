@@ -19,7 +19,7 @@ class InferenceClient:
             "https://router.huggingface.co/v1/chat/completions"
         )
         self.model_id = "Qwen/Qwen2.5-Coder-32B-Instruct"
-        self.timeout = httpx.Timeout(90.0, connect=10.0)
+        self.timeout = httpx.Timeout(120.0, connect=10.0)
 
     async def generate_text(self, prompt: str) -> str:
         headers = {
