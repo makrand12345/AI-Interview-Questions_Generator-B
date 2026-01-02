@@ -4,8 +4,8 @@ import re
 
 class QuestionGenerator:
     """
-    NLP Service that bifurcates resume text to generate highly targeted 
-    interview questions based on experience and skills.
+    NLP Service that bifurcates resume text and JD requirements to generate 
+    targeted interview questions with strict seniority guardrails.
     """
 
     def _bifurcate_resume(self, text: Optional[str]) -> dict:
@@ -29,7 +29,7 @@ class QuestionGenerator:
             parts["skills"] = clean_text[skills_match.start(2):skills_match.end(2)].strip()
         
         if exp_match:
-            parts["experience"] = clean_text[exp_match.start(2):].strip()[:2000] # Limit to 2k chars to prevent timeout
+            parts["experience"] = clean_text[exp_match.start(2):].strip()[:2000] # Buffer limit
             
         return parts
 
@@ -43,40 +43,50 @@ class QuestionGenerator:
         
         # 1. BIFURCATE text into Experience and Skills
         data = self._bifurcate_resume(resume_text)
+
+        # 2. Define Seniority Guardrails
+        # This mapping prevents a 'Fresher' from getting 'Senior' questions even if the JD is for a Lead role.
+        seniority_logic = {
+            "Fresher": "Focus on syntax, fundamentals, academic projects, and bug-fixing. Do NOT ask about leadership or system architecture.",
+            "Experienced": "Focus on mid-level execution, independent feature delivery, and optimization of existing codebases.",
+            "Mid-level": "Focus on design patterns, API integration, and code quality standards.",
+            "Senior": "Focus on system design, scalability, mentoring, and technical trade-offs (The 'Why' behind the 'How')."
+        }
         
-        # 2. Triangulated Prompt Logic
+        level_instruction = seniority_logic.get(seniority_level, "Focus on general technical competencies.")
+        
+        # 3. Triangulated Prompt Logic with Conflict Resolution
         system_prompt = (
-            "SYSTEM ROLE: You are a Lead Technical Architect conducting a high-stakes interview."
-            f"\nTARGET ROLE: {seniority_level} {job_role}"
+            "SYSTEM ROLE: You are an expert Technical Recruiter."
+            f"\nREQUIRED CANDIDATE LEVEL: {seniority_level}"
+            f"\nLEVEL-SPECIFIC STRATEGY: {level_instruction}"
             "\n\nSTRICT INTERVIEW LOGIC:"
-            "\n1. RESUME ANALYSIS: Extract specific projects from 'RESUME EXPERIENCE'. Create 4 questions "
-            "that challenge the candidate on the 'Why' and 'How' of their past work."
-            "\n2. JD GAP ANALYSIS: Look at the 'JOB DESCRIPTION'. Identify 3 core requirements (tools/architectures). "
-            "Create 3 questions testing the candidate's proficiency in these JD-specific areas, "
-            "especially if they aren't highlighted in the resume."
-            "\n3. SENIORITY VALIDATION: Create 3 questions on high-level system design, scalability, or "
-            "mentorship expectations consistent with a Senior-level role."
+            "\n1. SENIORITY GUARDRAIL (CRITICAL): The 'REQUIRED CANDIDATE LEVEL' is the absolute truth. "
+            "If the Job Description asks for more seniority (e.g., 'Founding' or 'Lead') than the candidate's level, "
+            "you MUST downgrade the question complexity to match the candidate's level."
+            "\n2. RESUME ANALYSIS: Create 4 questions about specific projects in 'RESUME EXPERIENCE'. Use company names."
+            "\n3. JD GAP ANALYSIS: Find 3 requirements in the 'JOB DESCRIPTION' not mentioned in the resume. "
+            "Ask how they would learn or apply their skills to these new tools."
+            "\n4. ROLE FUNDAMENTALS: Create 3 questions testing core competencies for the Job Role at the specified seniority."
             "\n\nSTRICT OUTPUT RULES:"
             "\n- Output EXACTLY 10 questions numbered 1-10."
-            "\n- NO introductory or concluding text."
-            "\n- NO labels like 'JD Question' or 'Resume Question'. Just the questions."
+            "\n- NO intro text, NO labels, NO category headers."
         )
 
         context_block = (
-            f"--- INPUT CONTEXT ---\n"
+            f"--- INPUTS ---\n"
             f"JOB TITLE: {job_role}\n"
-            f"EXPECTED SENIORITY: {seniority_level}\n\n"
-            f"--- JOB DESCRIPTION (The Requirements) ---\n"
-            f"{job_description if job_description else 'No JD provided - focus on general industry standards for this role.'}\n\n"
-            f"--- RESUME SKILLS ---\n"
-            f"{data['skills'] if data['skills'] else 'N/A'}\n\n"
-            f"--- RESUME EXPERIENCE (The History) ---\n"
-            f"{data['experience'] if data['experience'] else 'N/A'}"
+            f"SENIORITY: {seniority_level}\n\n"
+            f"--- JOB DESCRIPTION ---\n"
+            f"{job_description if job_description else 'Standard industry requirements apply.'}\n\n"
+            f"--- RESUME DATA ---\n"
+            f"SKILLS: {data['skills']}\n"
+            f"EXPERIENCE: {data['experience']}"
         )
 
         full_prompt = f"{system_prompt}\n\n{context_block}"
 
-        # 3. Generate using Qwen 2.5 Coder 32B
+        # 4. Generate using Qwen 2.5 Coder 32B
         try:
             return await inference_client.generate_text(full_prompt)
         except Exception as e:

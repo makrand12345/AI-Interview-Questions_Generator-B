@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, s
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorClient
+from app.models.schemas import SeniorityLevel
 
 # Internal imports
 from app.models.schemas import UserCreate, Token
@@ -76,7 +77,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @router.post("/generate", tags=["Inference"])
 async def generate_interview_questions(
     job_role: str = Form(...),
-    seniority_level: str = Form(...),
+    seniority_level: SeniorityLevel = Form(...), # Use the Enum here
     job_description: Optional[str] = Form(None),
     resume_file: Optional[UploadFile] = File(None),
     current_user: str = Depends(get_current_user)
